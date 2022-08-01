@@ -6,11 +6,15 @@ from PIL import Image
 from torchvision import transforms
 from data_utils.build_vocab import Vocabulary
 from gensim import models
-
+import tensorflow_hub as hub
+from sklearn.metrics.pairwise import cosine_similarity
 from flask import Flask
 from flask_restful import Resource, Api, reqparse
 
-model = models.KeyedVectors.load('w2v-googleplay.model')
+# load models
+# wmd = models.KeyedVectors.load('w2v-googleplay.model')
+w2v =  models.keyedvectors.load_word2vec_format('GoogleNews-vectors-negative300.bin', binary=True)
+use = hub.load("use/universal-sentence-encoder_4")
 
 vocab_path = 'vocab.pkl'
 model_path = 'best_model.ckpt'
@@ -58,16 +62,16 @@ def image_cap(images, sizes):
     return [' '.join(word_list[1: word_list.index('<end>')]) if '<end>' in word_list else '' for word_list in [[vocab.idx2word[i] for i in s] for s in sentence_ids]]
 
 
-class W2V(Resource):
+class WMD(Resource):
     def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('s1')
         parser.add_argument('s2')
         args = parser.parse_args()
-        return {'distance': model.wv.wmdistance(eval(args['s1']), eval(args['s2']))}
+        return {'distance': wmd.wv.wmdistance(eval(args['s1']), eval(args['s2']))}
 
 
-api.add_resource(W2V, '/w2v')
+api.add_resource(WMD, '/wmd')
 
 
 class ImageCaption(Resource):
@@ -81,5 +85,31 @@ class ImageCaption(Resource):
 
 api.add_resource(ImageCaption, '/img')
 
+
+class USE(Resource):
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('s1')
+        parser.add_argument('s2')
+        args = parser.parse_args()
+        x, y = use([" ".join(eval(args['s1'])), " ".join(eval(args['s2']))])
+        return {'sim': str(cosine_similarity([x], [y])[0][0])}
+
+
+api.add_resource(USE, '/use')
+
+
+class W2V(Resource):
+    def post(self):
+        parser = reqparse.RequestParser()
+        parser.add_argument('s1')
+        parser.add_argument('s2')
+        args = parser.parse_args()
+        return {'sim': str(w2v.similarity(args['s1'], args['s2']))}
+
+
+api.add_resource(W2V, '/w2v')
+
+
 if __name__ == '__main__':
-    app.run(debug=True, port=8888)
+    app.run(debug=False, port=8888)
