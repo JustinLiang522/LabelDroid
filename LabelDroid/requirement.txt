@@ -7,8 +7,5 @@ tqdm
 nltk
 pycocotools
 gensim
-tensorflow
-tensorflow_hub
-sklearn
 flask
 flask_restful

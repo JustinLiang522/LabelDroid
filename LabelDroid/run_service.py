@@ -110,7 +110,7 @@ class WMD(Resource):
         parser.add_argument('s1')
         parser.add_argument('s2')
         args = parser.parse_args()
-        return {'sim': str(w2v.similarity(args['s1'], args['s2']))}
+        return {'distance': w2v.wmdistance(eval(args['s1']), eval(args['s2']))}
 
 
 api.add_resource(WMD, '/wmd')
